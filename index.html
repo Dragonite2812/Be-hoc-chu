@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bé Học Chữ</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bé học chữ">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#effaf5">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Dancing+Script:wght@600&display=swap">
+<style>
+  /* Bố cục: lưới chữ cái ở trang chính → mỗi chữ có 4 hoạt động (Học chữ, Ghép tiếng, Trò chơi, Tập viết).
+     Bộ màu sáng tươi cho trẻ em, chủ ý dùng một giao diện sáng. */
+  :root {
+    color-scheme: light;
+    --bg: #effaf5;
+    --card: #ffffff;
+    --ink: #2c3550;
+    --soft: #7f8aa6;
+    --teal: #12b3a0;
+    --blue: #3d9bff;
+    --green: #2fbf71;
+    --red: #ff6464;
+    --orange: #ff9f1c;
+    --purple: #8f5cff;
+    --pink: #ff6fa8;
+    --chip: #e2f1ec;
+    --line: #b9d8ee;
+    --shadow: 0 6px 0 rgba(44, 53, 80, 0.14);
+    --display: "Baloo 2", "Arial Rounded MT Bold", "Segoe UI", system-ui, sans-serif;
+    --script: "Dancing Script", "Segoe Script", cursive;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--display); font-size: 18px;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation; overflow: hidden;
+  }
+  button { font-family: inherit; touch-action: manipulation; color: inherit; }
+  button:focus-visible { outline: 4px solid var(--orange); outline-offset: 3px; }
+
+  .screen {
+    height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding-block: 14px 24px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .btn {
+    border: none; cursor: pointer; font-weight: 800; color: #fff;
+    border-radius: 22px; box-shadow: var(--shadow);
+    transition: transform .08s, box-shadow .08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(44,53,80,.14); }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .back { background: var(--soft); font-size: 22px; padding: 8px 18px; }
+  .topTitle { font-size: clamp(22px, 3.2vw, 32px); font-weight: 800; text-align: center; flex: 1; min-width: 0; }
+  .topRight { display: flex; align-items: center; gap: 12px; }
+  .speakBtn { background: var(--orange); font-size: 26px; padding: 8px 12px; border-radius: 16px; line-height: 1; }
+  .stars { font-size: clamp(22px, 3vw, 30px); font-weight: 800; color: var(--orange); white-space: nowrap; }
+
+  /* ---------- Trang chính ---------- */
+  h1 { font-size: clamp(44px, 8vw, 80px); line-height: 1; margin: 6px 0 4px; color: var(--teal); text-align: center; }
+  .sub { text-align: center; font-size: clamp(19px, 2.8vw, 25px); color: var(--soft); margin: 0 0 8px; font-weight: 500; }
+  .legend { display: flex; justify-content: center; gap: 18px; font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 18px; height: 18px; border-radius: 6px; display: inline-block; }
+  .letterGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px; }
+  .tile {
+    position: relative; aspect-ratio: 1; border-radius: 24px; font-size: clamp(54px, 7vw, 70px); line-height: 1;
+    display: flex; align-items: center; justify-content: center; padding-bottom: 6px;
+  }
+  .tile small { position: absolute; top: 8px; left: 12px; font-size: 22px; opacity: .85; }
+  .tile.v { background: var(--orange); }
+  .tile.c { background: var(--blue); }
+  .tile.last { outline: 5px solid var(--purple); outline-offset: 2px; }
+  .settings {
+    margin: 26px auto 0; max-width: 660px; background: var(--card); border-radius: 20px; padding: 14px 20px;
+    box-shadow: var(--shadow); font-weight: 500;
+  }
+  .settings h3 { margin: 0 0 4px; font-size: 19px; color: var(--soft); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 19px; }
+  .row input[type=checkbox] { width: 28px; height: 28px; accent-color: var(--teal); flex: none; }
+  .voiceStatus { font-size: 15px; color: var(--soft); line-height: 1.35; min-width: 0; }
+  .voiceStatus.ok { color: var(--green); }
+  .voiceStatus.warn { color: var(--red); }
+  .testBtn { background: var(--purple); font-size: 17px; padding: 8px 14px; border-radius: 14px; flex: none; box-shadow: 0 3px 0 rgba(44,53,80,.14); }
+  .tip { font-size: 15px; color: var(--soft); margin: 6px 0 0; line-height: 1.4; }
+
+  /* ---------- Trang bài học ---------- */
+  .hero {
+    display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap;
+    background: var(--card); border-radius: 30px; box-shadow: var(--shadow); padding: 14px 20px; margin-bottom: 18px;
+  }
+  .heroLetter { font-size: clamp(90px, 15vw, 150px); font-weight: 800; line-height: 1; background: none; box-shadow: none; padding: 0 8px; }
+  .heroLetter.v { color: var(--orange); }
+  .heroLetter.c { color: var(--blue); }
+  .heroScript { font-family: var(--script); font-size: clamp(80px, 13vw, 130px); color: var(--ink); line-height: 1; }
+  .heroSay { font-size: 22px; color: var(--soft); font-weight: 700; text-align: center; }
+  .acts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .act { padding: 18px 10px; font-size: clamp(24px, 3.4vw, 34px); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .act .em { font-size: clamp(46px, 7vw, 66px); line-height: 1.1; }
+  .act.a1 { background: var(--teal); } .act.a2 { background: var(--purple); }
+  .act.a3 { background: var(--pink); } .act.a4 { background: var(--green); }
+
+  /* ---------- Học chữ ---------- */
+  .sectionTitle { font-size: clamp(22px, 3vw, 28px); font-weight: 800; margin: 18px 0 10px; }
+  .wordGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .wordCard {
+    background: var(--card); color: var(--ink); border-radius: 22px; padding: 10px 6px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .wordCard .pic { font-size: clamp(56px, 7vw, 72px); line-height: 1.1; }
+  .wordCard .w { font-size: clamp(28px, 3.6vw, 36px); font-weight: 700; line-height: 1.2; }
+  .hl { color: var(--red); }
+
+  /* ---------- Ghép tiếng ---------- */
+  .tones { display: flex; flex-wrap: wrap; gap: 10px; }
+  .toneChip { background: var(--card); color: var(--ink); padding: 8px 14px; font-size: 20px; border-radius: 16px; }
+  .toneChip b { font-size: 30px; color: var(--purple); margin-right: 6px; }
+  .ghepRow {
+    background: var(--card); border-radius: 24px; box-shadow: var(--shadow); padding: 10px 14px; margin-bottom: 14px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px;
+  }
+  .part { font-size: clamp(36px, 5vw, 50px); font-weight: 800; padding: 2px 16px; border-radius: 16px; line-height: 1.2; box-shadow: 0 4px 0 rgba(44,53,80,.14); }
+  .part.c { background: var(--blue); } .part.v { background: var(--orange); } .part.s { background: var(--teal); }
+  .opg { font-size: 36px; font-weight: 800; color: var(--soft); }
+  .toneRow { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
+  .syl { background: var(--chip); color: var(--ink); font-size: clamp(28px, 4vw, 40px); font-weight: 700; padding: 2px 16px; border-radius: 14px; box-shadow: 0 3px 0 rgba(44,53,80,.12); }
+
+  /* ---------- Trò chơi ---------- */
+  .prompt { text-align: center; font-size: clamp(22px, 3.2vw, 32px); font-weight: 800; margin: 4px 0 12px; line-height: 1.3; }
+  .prompt .big { color: var(--red); font-size: 1.3em; }
+  .picGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 820px; margin: 0 auto; }
+  .picCard {
+    position: relative; background: var(--card); color: var(--ink); border-radius: 24px; padding: 10px 6px;
+    display: flex; flex-direction: column; align-items: center; border: 5px solid transparent;
+  }
+  .picCard .pic { font-size: clamp(64px, 10vw, 100px); line-height: 1.1; }
+  .picCard .w { font-size: clamp(26px, 3.6vw, 36px); font-weight: 700; }
+  .picCard.ok { border-color: var(--green); }
+  .picCard.ok::after { content: "✓"; position: absolute; top: 4px; right: 12px; font-size: 40px; color: var(--green); font-weight: 800; }
+  .shake { animation: shake .4s; }
+  .wrongFlash { border-color: var(--red) !important; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+
+  .turtleGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 880px; margin: 0 auto; }
+  .turtle { background: none; box-shadow: none; padding: 0; }
+  .turtle svg { width: 100%; height: auto; display: block; }
+  .turtle text { font-family: var(--display); font-weight: 700; }
+
+  .fillCard { background: var(--card); border-radius: 30px; box-shadow: var(--shadow); padding: 12px; text-align: center; max-width: 700px; margin: 0 auto 18px; }
+  .fillCard .pic { font-size: clamp(90px, 16vw, 150px); line-height: 1.1; }
+  .fillCard .w { font-size: clamp(48px, 8vw, 80px); font-weight: 800; line-height: 1.2; }
+  .blank { color: var(--blue); border-bottom: 5px dashed var(--blue); padding: 0 .1em; display: inline-block; min-width: .8em; }
+  .blank.ok { color: var(--green); border-color: var(--green); border-bottom-style: solid; }
+  .choices { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+  .choice { min-width: 120px; padding: 6px 26px; font-size: clamp(50px, 8vw, 76px); line-height: 1.25; background: var(--blue); }
+  .choice.ok { background: var(--green); }
+  .choice.bad { background: var(--red); }
+  .listen { font-size: 70px; padding: 6px 30px; background: var(--orange); display: block; margin: 0 auto 18px; border-radius: 30px; }
+
+  .feedback { text-align: center; font-size: clamp(24px, 3.6vw, 36px); font-weight: 800; min-height: 1.4em; margin-top: 12px; }
+  .feedback.ok { color: var(--green); } .feedback.bad { color: var(--red); }
+  .nextBtn { display: block; margin: 8px auto 0; font-size: 30px; padding: 10px 40px; background: var(--green); }
+
+  /* ---------- Tập viết ---------- */
+  .writeBar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 10px; }
+  .wbtn { font-size: 22px; padding: 8px 18px; background: var(--chip); color: var(--ink); }
+  .wbtn.sel { background: var(--teal); color: #fff; }
+  .wbtn.go { background: var(--green); color: #fff; }
+  .wbtn.clear { background: var(--orange); color: #fff; }
+  .padWrap { background: #fff; border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; position: relative; }
+  #pad { display: block; width: 100%; touch-action: none; }
+  .writeTip { text-align: center; color: var(--soft); font-size: 17px; margin-top: 8px; }
+
+  /* ---------- Hiệu ứng ---------- */
+  #fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+  .burst {
+    position: absolute; left: 0; right: 0; top: 38%; text-align: center; font-size: min(34vw, 34vh, 280px);
+    line-height: 1; margin-top: -.5em; animation: pop 1.9s ease-out forwards; filter: drop-shadow(0 10px 16px rgba(0,0,0,.18));
+  }
+  .burst.small { font-size: min(20vw, 20vh, 160px); animation-duration: 1.2s; }
+  .burstText {
+    position: absolute; left: 16px; right: 16px; top: 64%; text-align: center; font-size: clamp(36px, 6vw, 68px);
+    font-weight: 800; color: var(--green); line-height: 1.1; text-shadow: 0 4px 0 #fff, 0 0 20px #fff; animation: rise 1.9s ease-out forwards;
+  }
+  @keyframes pop {
+    0% { transform: scale(0) rotate(-20deg); opacity: 0; } 18% { transform: scale(1.25) rotate(8deg); opacity: 1; }
+    30% { transform: scale(.95) rotate(-6deg); } 42% { transform: scale(1.08) rotate(4deg); } 54% { transform: scale(1) rotate(-3deg); }
+    66% { transform: scale(1.05) rotate(2deg); } 82% { transform: scale(1) rotate(0); opacity: 1; } 100% { transform: scale(1.3); opacity: 0; }
+  }
+  @keyframes rise { 0% { transform: translateY(40px); opacity: 0; } 20% { transform: translateY(0); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(-20px); opacity: 0; } }
+  .confetti { position: absolute; top: -30px; width: 14px; height: 22px; border-radius: 3px; animation: fall linear forwards; }
+  .confetti.emo { width: auto; height: auto; font-size: 40px; }
+  @keyframes fall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+  .endBox { text-align: center; padding-top: 30px; }
+  .endBox h2 { font-size: clamp(44px, 8vw, 76px); color: var(--teal); margin: 0; }
+  .endBox .result { font-size: clamp(30px, 5vw, 50px); font-weight: 800; margin: 10px 0; }
+  .endBox .bigstars { font-size: clamp(64px, 11vw, 100px); letter-spacing: 6px; margin-bottom: 20px; }
+  .endBox .bigstars span { display: inline-block; animation: pop 1s ease-out both; }
+  .endBtns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .endBtns .btn { font-size: clamp(26px, 4vw, 34px); padding: 12px 36px; }
+
+  @media (max-width: 600px) {
+    .acts { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .picGrid { grid-template-columns: repeat(2, 1fr); }
+    .turtleGrid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .burst, .burstText, .bigstars span, .shake { animation-duration: .01s !important; }
+    .confetti { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="fx"></div>
+
+<!-- TRANG CHÍNH -->
+<section id="home" class="screen">
+  <div class="wrap">
+    <h1>Bé Học Chữ ✏️</h1>
+    <p class="sub">Chọn một chữ để học nhé!</p>
+    <div class="legend"><span><i style="background:var(--orange)"></i>Nguyên âm</span><span><i style="background:var(--blue)"></i>Phụ âm</span></div>
+    <div class="letterGrid" id="letterGrid"></div>
+
+    <div class="settings">
+      <h3>⚙ Cài đặt cho bố mẹ</h3>
+      <div class="row"><label for="optSound">Nhạc và tiếng vỗ tay</label><input type="checkbox" id="optSound"></div>
+      <div class="row"><label for="optVoice">Giọng đọc</label><input type="checkbox" id="optVoice"></div>
+      <div class="row">
+        <span class="voiceStatus" id="voiceStatus">Bấm Nghe thử để kiểm tra giọng đọc.</span>
+        <button class="btn testBtn" id="testVoice">🔊 Nghe thử</button>
+      </div>
+      <p class="tip">App đọc chữ theo âm như cô giáo dạy ("mờ", "nờ"…). Trên iPad/iPhone: tắt chế độ Im lặng để nghe được tiếng.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BÀI HỌC -->
+<section id="lesson" class="screen" hidden>
+  <div class="wrap">
+    <div class="topbar">
+      <button class="btn back" data-go="home">🏠 Về</button>
+      <div class="topTitle" id="lessonTitle"></div>
+      <div style="width:90px"></div>
+    </div>
+    <div class="hero">
+      <div>
+        <button class="btn heroLetter" id="heroLetter"></button>
+        <div class="heroSay" id="heroSay"></div>
+      </div>
+      <div class="heroScript" id="heroScript"></div>
+    </div>
+    <div class="acts">
+      <button class="btn act a1" data-act="learn"><span class="em">👀</span>Học chữ</button>
+      <button class="btn act a2" data-act="ghep"><span class="em">🧩</span>Ghép tiếng</button>
+      <button class="btn act a3" data-act="game"><span class="em">🎮</span>Trò chơi</button>
+      <button class="btn act a4" data-act="write"><span class="em">✏️</span>Tập viết</button>
+    </div>
+  </div>
+</section>
+
+<!-- HỌC CHỮ -->
+<section id="learn" class="screen" hidden>
+  <div class="wrap">
+    <div class="topbar">
+      <button class="btn back" data-go="lesson">⬅ Quay lại</button>
+      <div class="topTitle" id="learnTitle"></div>
+      <div style="width:90px"></div>
+    </div>
+    <div class="sectionTitle">Con chạm vào hình để nghe đọc nhé 👇</div>
+    <div class="wordGrid" id="learnWords"></div>
+  </div>
+</section>
+
+<!-- GHÉP TIẾNG -->
+<section id="ghep" class="screen" hidden>
+  <div class="wrap">
+    <div class="topbar">
+      <button class="btn back" data-go="lesson">⬅ Quay lại</button>
+      <div class="topTitle" id="ghepTitle"></div>
+      <div style="width:90px"></div>
+    </div>
+    <div class="sectionTitle">Các dấu thanh</div>
+    <div class="tones" id="toneLegend"></div>
+    <div class="sectionTitle">Con chạm để nghe đọc nhé 👇</div>
+    <div id="ghepRows"></div>
+  </div>
+</section>
+
+<!-- TRÒ CHƠI -->
+<section id="game" class="screen" hidden>
+  <div class="wrap">
+    <div class="topbar">
+      <button class="btn back" id="gameBack">⬅ Thoát</button>
+      <div class="topTitle" id="gameProgress"></div>
+      <div class="topRight"><button class="btn speakBtn" id="gameSpeak" aria-label="Đọc lại">🔊</button><div class="stars" id="gameStars">⭐ 0</div></div>
+    </div>
+    <div class="prompt" id="gamePrompt"></div>
+    <div id="gameBody"></div>
+    <div class="feedback" id="gameFeedback"></div>
+  </div>
+</section>
+
+<!-- TẬP VIẾT -->
+<section id="write" class="screen" hidden>
+  <div class="wrap">
+    <div class="topbar">
+      <button class="btn back" data-go="lesson">⬅ Quay lại</button>
+      <div class="topTitle" id="writeTitle"></div>
+      <button class="btn speakBtn" id="writeSpeak" aria-label="Đọc chữ">🔊</button>
+    </div>
+    <div class="writeBar">
+      <button class="btn wbtn sel" id="caseLower">chữ thường</button>
+      <button class="btn wbtn" id="caseUpper">CHỮ HOA</button>
+      <button class="btn wbtn clear" id="writeClear">↺ Viết lại</button>
+      <button class="btn wbtn go" id="writeCheck">✔ Xong</button>
+    </div>
+    <div class="padWrap"><canvas id="pad"></canvas></div>
+    <div class="writeTip" id="writeTip">Con tô theo nét chữ mờ nhé. Dùng bút Apple Pencil hoặc ngón tay.</div>
+  </div>
+</section>
+
+<!-- KẾT QUẢ -->
+<section id="end" class="screen" hidden>
+  <div class="wrap endBox">
+    <h2 id="endTitle"></h2>
+    <div class="result" id="endResult"></div>
+    <div class="bigstars" id="endStars"></div>
+    <div class="endBtns">
+      <button class="btn" style="background:var(--green)" id="againBtn">🔁 Chơi lại</button>
+      <button class="btn" style="background:var(--soft)" data-go="lesson">⬅ Về bài học</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function rnd(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+  function pick(a) { return a[rnd(0, a.length - 1)]; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = rnd(0, i), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  // ================= CÀI ĐẶT =================
+  var STORE_KEY = "be-hoc-chu-settings";
+  var settings = { sound: true, voice: true, last: "" };
+  try { var sv = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); if (sv) for (var k in sv) if (Object.prototype.hasOwnProperty.call(sv, k)) settings[k] = sv[k]; } catch (e) {}
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(settings)); } catch (e) {} }
+
+  // ================= DỮ LIỆU CHỮ CÁI =================
+  // say: cách đọc theo âm như lớp 1 dạy
+  var LETTERS = [
+    ["a","a"],["ă","á"],["â","ớ"],["b","bờ"],["c","cờ"],["d","dờ"],["đ","đờ"],["e","e"],["ê","ê"],
+    ["g","gờ"],["h","hờ"],["i","i"],["k","ca"],["l","lờ"],["m","mờ"],["n","nờ"],["o","o"],["ô","ô"],
+    ["ơ","ơ"],["p","pờ"],["q","quờ"],["r","rờ"],["s","sờ"],["t","tờ"],["u","u"],["ư","ư"],["v","vờ"],
+    ["x","xờ"],["y","i dài"]
+  ].map(function (p) {
+    return { l: p[0], up: p[0].toUpperCase(), say: p[1], v: "aăâeêioôơuưy".indexOf(p[0]) >= 0 };
+  });
+  function letterObj(l) { for (var i = 0; i < LETTERS.length; i++) if (LETTERS[i].l === l) return LETTERS[i]; return LETTERS[0]; }
+
+  // Ngân hàng từ có hình
+  var BANK = [
+    ["bà","👵"],["bé","👶"],["bò","🐄"],["bóng","⚽"],["bánh","🍰"],["bắp","🌽"],["bút","✏️"],
+    ["cá","🐟"],["cờ","🚩"],["cua","🦀"],["cú","🦉"],["cam","🍊"],["cây","🌳"],["cô","👩‍🏫"],
+    ["dê","🐐"],["dế","🦗"],["dưa","🍉"],["dừa","🥥"],
+    ["đá","🪨"],["đèn","💡"],["đũa","🥢"],["đàn","🎸"],["đồng hồ","⏰"],
+    ["gà","🐔"],["gấu","🐻"],["gỗ","🪵"],
+    ["hổ","🐯"],["hoa","🌸"],["hề","🤡"],["hươu","🦌"],["hộp","📦"],
+    ["kéo","✂️"],["kem","🍦"],["kẹo","🍬"],["kính","👓"],["kiến","🐜"],
+    ["lá","🍃"],["lê","🍐"],["lợn","🐷"],["lửa","🔥"],
+    ["mẹ","👩"],["mũ","🧢"],["mèo","🐱"],["mì","🍜"],["mưa","🌧️"],["mắt","👁️"],["mũi","👃"],["mây","☁️"],
+    ["nơ","🎀"],["nho","🍇"],["nồi","🍲"],["nến","🕯️"],["nấm","🍄"],["nón","👒"],
+    ["pin","🔋"],["quà","🎁"],
+    ["rùa","🐢"],["rổ","🧺"],["rau","🥬"],["rắn","🐍"],["rồng","🐉"],
+    ["sò","🐚"],["sao","⭐"],["sữa","🥛"],["sư tử","🦁"],["sách","📚"],["sóc","🐿️"],
+    ["táo","🍎"],["tàu","🚢"],["tim","❤️"],["ti vi","📺"],["tôm","🦐"],["thỏ","🐰"],
+    ["voi","🐘"],["vịt","🦆"],["vở","📒"],["váy","👗"],["vé","🎫"],["võ sĩ","🥋"],["ví","👛"],
+    ["xe","🚗"],["xoài","🥭"],["xe đạp","🚲"],["ong","🐝"],["ếch","🐸"],["ổ bánh mì","🥖"]
+  ].map(function (p) { return { w: p[0], e: p[1] }; });
+
+  // ================= XỬ LÝ CHỮ VIỆT =================
+  var TONES = ["", "̀", "́", "̉", "̃", "̣"]; // ngang, huyền, sắc, hỏi, ngã, nặng
+  var TONE_NAMES = ["thanh ngang", "dấu huyền", "dấu sắc", "dấu hỏi", "dấu ngã", "dấu nặng"];
+  var TONE_SIGNS = ["–", "`", "´", "ˀ", "~", "."];
+  var TONE_RE = /[̣̀́̉̃]/g;
+  var VOWELS = "aăâeêioôơuưy";
+  var ONSETS = ["ngh","ng","nh","ch","gh","gi","kh","ph","qu","th","tr","b","c","d","đ","g","h","k","l","m","n","p","r","s","t","v","x"];
+  function strip(s) { return s.normalize("NFD").replace(TONE_RE, "").normalize("NFC").toLowerCase(); }
+  function onsetOf(syl) {
+    var b = strip(syl);
+    for (var i = 0; i < ONSETS.length; i++) {
+      var o = ONSETS[i];
+      if (b.indexOf(o) === 0 && b.length > o.length) {
+        if (o === "gi" && VOWELS.indexOf(b.charAt(2)) < 0) continue; // "gì" → g + ì
+        return o;
+      }
+    }
+    return "";
+  }
+  function toneOf(ch) { var m = ch.normalize("NFD").match(TONE_RE); return m ? TONES.indexOf(m[0]) : 0; }
+  function withTone(ch, ti) { return (strip(ch) + TONES[ti]).normalize("NFC"); }
+  // đặt dấu thanh lên nguyên âm cuối của phần vần (đủ cho tiếng đơn giản: mi, ma, ăn, quà…)
+  function addTone(syl, ti) {
+    var on = onsetOf(syl), rest = syl.slice(on.length), idx = -1;
+    for (var i = 0; i < rest.length; i++) if (VOWELS.indexOf(strip(rest.charAt(i))) >= 0) idx = i;
+    if (idx < 0) return syl;
+    return on + rest.slice(0, idx) + withTone(rest.charAt(idx), ti) + rest.slice(idx + 1);
+  }
+  function syllHas(syl, L) {
+    var on = onsetOf(syl);
+    if (!L.v) return on === L.l || (L.l === "q" && on === "qu");
+    return strip(syl.slice(on.length)).indexOf(L.l) >= 0;
+  }
+  function wordHas(w, L) { return w.split(" ").some(function (s) { return syllHas(s, L); }); }
+  function highlight(w, L) {
+    return w.split(" ").map(function (s) {
+      if (!syllHas(s, L)) return s;
+      var on = onsetOf(s);
+      if (!L.v) return '<span class="hl">' + s.slice(0, on.length) + "</span>" + s.slice(on.length);
+      var out = s.slice(0, on.length), rest = s.slice(on.length);
+      for (var i = 0; i < rest.length; i++) { var c = rest.charAt(i); out += strip(c) === L.l ? '<span class="hl">' + c + "</span>" : c; }
+      return out;
+    }).join(" ");
+  }
+  function wordsFor(L) { return BANK.filter(function (b) { return wordHas(b.w, L); }); }
+  function wordsWithout(L) { return BANK.filter(function (b) { return !wordHas(b.w, L); }); }
+
+  // Các hàng ghép tiếng cho mỗi chữ: [phần đầu, phần vần, tiếng]
+  function ghepRows(L) {
+    var rows = [];
+    if (!L.v) {
+      var on = L.l === "q" ? "qu" : L.l;
+      var pref = ["a","i","o","u","ư","e","ê","ơ","ô"].filter(function (v) {
+        if (L.l === "c") return "eêi".indexOf(v) < 0;
+        if (L.l === "k") return "eêi".indexOf(v) >= 0;
+        if (L.l === "g") return "eêi".indexOf(v) < 0;
+        if (L.l === "q") return "aeêơ".indexOf(v) >= 0;
+        return true;
+      });
+      pref.slice(0, 4).forEach(function (v) { rows.push([on, v, on + v]); });
+    } else if (L.l === "ă" || L.l === "â") {
+      rows.push(["", L.l + "n", L.l + "n"], ["", L.l + "m", L.l + "m"], ["c", L.l + "n", "c" + L.l + "n"], ["l", L.l + "m", "l" + L.l + "m"]);
+    } else if (L.l === "y") {
+      ["l","m","k","t"].forEach(function (c) { rows.push([c, "y", c + "y"]); });
+    } else {
+      ["b","m","l","h","n"].forEach(function (c) { rows.push([c, L.l, c + L.l]); });
+      rows.splice(0, 0, ["", L.l, L.l]);
+      rows = rows.slice(0, 4);
+    }
+    return rows;
+  }
+  // các tiếng (có dấu) của bài, dùng cho trò chơi
+  function lessonSyllables(L) {
+    var out = [];
+    ghepRows(L).forEach(function (r) { for (var t = 0; t < 6; t++) out.push(addTone(r[2], t)); });
+    return out;
+  }
+  // tiếng "nhiễu" không chứa chữ đang học
+  function distractorSyllables(L, n) {
+    var pool = [], cons = ["b","c","d","đ","g","h","l","m","n","r","s","t","v","x"], vows = ["a","o","ô","ơ","u","ư","e","ê","i"];
+    for (var guard = 0; pool.length < n && guard < 500; guard++) {
+      var c = pick(cons), v = pick(vows);
+      if ((c === "c" || c === "g") && "eêi".indexOf(v) >= 0) continue;
+      var s = addTone(c + v, rnd(0, 5));
+      if (syllHas(s, L) || pool.indexOf(s) >= 0) continue;
+      pool.push(s);
+    }
+    return pool;
+  }
+
+  // ================= ÂM THANH =================
+  var audioCtx = null;
+  function ensureAudio() {
+    try {
+      if (!audioCtx) {
+        var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+        audioCtx = new AC();
+        var b = audioCtx.createBuffer(1, 1, 22050), s = audioCtx.createBufferSource(); s.buffer = b; s.connect(audioCtx.destination); s.start(0);
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    } catch (e) { return null; }
+    return audioCtx;
+  }
+  function note(f, st, d, type, vol) {
+    if (!settings.sound) return; var ctx = ensureAudio(); if (!ctx) return;
+    var o = ctx.createOscillator(), g = ctx.createGain(); o.type = type || "triangle"; o.frequency.value = f;
+    var t = ctx.currentTime + st; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || .18, t + .02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + d + .05);
+  }
+  function applause(st, dur, vol) {
+    if (!settings.sound) return; var ctx = ensureAudio(); if (!ctx) return;
+    var sr = ctx.sampleRate, len = Math.floor(sr * dur), buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    for (var c = 0; c < dur * 28; c++) {
+      var pos = Math.floor(Math.random() * (len - sr * .03)), cl = Math.floor(sr * (.012 + Math.random() * .02)), amp = .4 + Math.random() * .6;
+      for (var i = 0; i < cl; i++) d[pos + i] += (Math.random() * 2 - 1) * amp * Math.exp(-i / (cl / 4));
+    }
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1600; bp.Q.value = .6;
+    var g = ctx.createGain(), t = ctx.currentTime + st, v = vol || .35;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .15); g.gain.setValueAtTime(v, t + dur * .6); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start(t);
+  }
+  var JINGLES = [[[523,0],[659,.12],[784,.24],[1047,.36]],[[392,0],[523,.13],[659,.26],[784,.39],[1047,.52]],[[659,0],[784,.11],[880,.22],[1047,.33],[1319,.45]]];
+  function soundGood() { var j = pick(JINGLES); j.forEach(function (n) { note(n[0], n[1], .2, "triangle", .15); }); }
+  function soundBig() { soundGood(); var l = 1047; note(l, .6, .9, "triangle", .1); note(l * 1.25, .6, .9, "triangle", .07); applause(.2, 2, .3); }
+  function soundWrong() { note(440, 0, .25, "sine", .13); note(330, .22, .4, "sine", .13); }
+  function soundTap() { note(880, 0, .06, "sine", .06); }
+  function soundWin() {
+    [523,523,523,659,784,659,784,1047].forEach(function (f, i) { note(f, [0,.15,.3,.45,.7,.9,1.05,1.3][i], .25, "triangle", .16); });
+    note(1047, 1.3, 1.4, "triangle", .1); note(1319, 1.3, 1.4, "triangle", .07); applause(.3, 3.5, .36);
+  }
+
+  // ================= GIỌNG ĐỌC =================
+  var synth = window.speechSynthesis || null, viVoice = null;
+  function setVS(t, c) { var el = $("voiceStatus"); el.textContent = t; el.className = "voiceStatus " + (c || ""); }
+  function pickVoice() {
+    if (!synth) { setVS("Thiết bị này không hỗ trợ giọng đọc.", "warn"); return; }
+    var vs = []; try { vs = synth.getVoices() || []; } catch (e) {}
+    var best = null, bs = 0;
+    vs.forEach(function (v) {
+      if (!/^vi/i.test(v.lang || "")) return;
+      var s = 1; if (/natural|online|enhanced|premium|neural/i.test(v.name)) s += 3; if (/linh|hoaimy/i.test(v.name)) s += 1; if (v.localService) s += 1;
+      if (s > bs) { bs = s; best = v; }
+    });
+    viVoice = best;
+    if (viVoice) setVS("✔ Đang dùng giọng: " + viVoice.name, "ok");
+    else if (vs.length) setVS("Chưa có giọng tiếng Việt. iPad/iPhone: Cài đặt → Trợ năng → Nội dung được đọc → Giọng nói → Tiếng Việt.", "warn");
+  }
+  if (synth) { try { synth.onvoiceschanged = pickVoice; } catch (e) {} setTimeout(pickVoice, 800); setTimeout(pickVoice, 2500); }
+  function speak(text, done) {
+    var fin = false; function f() { if (!fin) { fin = true; if (done) done(); } }
+    if (!viVoice) pickVoice();
+    if (!synth || !settings.voice) { f(); return; }
+    try {
+      synth.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      if (viVoice) u.voice = viVoice; u.lang = viVoice ? viVoice.lang : "vi-VN";
+      u.rate = .85; u.pitch = 1.1; u.onend = f; u.onerror = f; synth.speak(u); setTimeout(f, 8000);
+    } catch (e) { f(); }
+  }
+  function stopSpeak() { try { if (synth) synth.cancel(); } catch (e) {} }
+
+  // ================= HIỆU ỨNG =================
+  var COLORS = ["#ff6464","#ff9f1c","#ffd23d","#2fbf71","#3d9bff","#8f5cff","#ff6fa8","#12b3a0"];
+  function celebrate(emoji, text, small) {
+    var fx = $("fx"); fx.innerHTML = "";
+    var b = document.createElement("div"); b.className = "burst" + (small ? " small" : ""); b.textContent = emoji; fx.appendChild(b);
+    if (text) { var t = document.createElement("div"); t.className = "burstText"; t.textContent = text; fx.appendChild(t); }
+    if (!small) confetti(40, ["⭐","🎉","✨"]);
+    setTimeout(function () { if (b.parentNode) fx.innerHTML = ""; }, 2000);
+  }
+  function confetti(n, emojis) {
+    var fx = $("fx");
+    for (var i = 0; i < n; i++) {
+      var c = document.createElement("div"), emo = emojis && Math.random() < .25;
+      c.className = "confetti" + (emo ? " emo" : ""); if (emo) c.textContent = pick(emojis); else c.style.background = pick(COLORS);
+      c.style.left = Math.random() * 100 + "%"; c.style.animationDuration = (1.6 + Math.random() * 1.6) + "s"; c.style.animationDelay = Math.random() * .4 + "s";
+      fx.appendChild(c);
+    }
+    setTimeout(function () { var cs = fx.querySelectorAll(".confetti"); for (var i = 0; i < cs.length; i++) cs[i].remove(); }, 3800);
+  }
+  var PRAISE = ["Đúng rồi! Con giỏi lắm!", "Hoan hô con!", "Tuyệt vời!", "Con giỏi quá!", "Chính xác!"];
+  var CHEER = ["👏","🎉","🥳","🌟","👍","🙌","😍"];
+
+  // ================= ĐIỀU HƯỚNG =================
+  var SCREENS = ["home","lesson","learn","ghep","game","write","end"], current = "home", L = LETTERS[0], token = 0;
+  function show(id) {
+    SCREENS.forEach(function (s) { $(s).hidden = s !== id; });
+    current = id; $(id).scrollTop = 0;
+    if (id !== "game") token++;
+    if (id === "write") setTimeout(setupPad, 30);
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-go]"); if (!b) return;
+    ensureAudio(); stopSpeak(); $("fx").innerHTML = ""; show(b.getAttribute("data-go"));
+  });
+
+  // ---------- Trang chính ----------
+  function buildHome() {
+    var g = $("letterGrid"); g.innerHTML = "";
+    LETTERS.forEach(function (x) {
+      var b = document.createElement("button");
+      b.className = "btn tile " + (x.v ? "v" : "c") + (settings.last === x.l ? " last" : "");
+      b.innerHTML = "<small>" + x.up + "</small>" + x.l;
+      b.addEventListener("click", function () { ensureAudio(); openLesson(x); });
+      g.appendChild(b);
+    });
+  }
+  $("optSound").checked = !!settings.sound; $("optVoice").checked = !!settings.voice;
+  $("optSound").addEventListener("change", function () { settings.sound = this.checked; save(); });
+  $("optVoice").addEventListener("change", function () { settings.voice = this.checked; save(); });
+  $("testVoice").addEventListener("click", function () { ensureAudio(); pickVoice(); var o = settings.voice; settings.voice = true; speak("mờ, i, mi. Con giỏi lắm!", pickVoice); settings.voice = o; });
+
+  function sayLetter(x) { return x.v ? "âm " + x.say : x.say; }
+  function openLesson(x) {
+    L = x; settings.last = x.l; save(); buildHome();
+    $("lessonTitle").textContent = "Chữ " + x.l;
+    var hl = $("heroLetter"); hl.textContent = x.up + " " + x.l; hl.className = "btn heroLetter " + (x.v ? "v" : "c");
+    $("heroSay").textContent = "🔊 đọc là: \"" + x.say + "\"";
+    $("heroScript").textContent = x.l;
+    show("lesson");
+    speak(x.say);
+  }
+  $("heroLetter").addEventListener("click", function () { speak(L.say); });
+  document.querySelectorAll("[data-act]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      ensureAudio(); var a = b.getAttribute("data-act");
+      if (a === "learn") openLearn(); else if (a === "ghep") openGhep(); else if (a === "game") startGame(); else openWrite();
+    });
+  });
+
+  // ---------- Học chữ ----------
+  function openLearn() {
+    $("learnTitle").textContent = "Học chữ " + L.l;
+    var g = $("learnWords"); g.innerHTML = "";
+    var ws = wordsFor(L);
+    if (!ws.length) g.innerHTML = '<div class="sectionTitle" style="color:var(--soft)">Chữ này mình sẽ học qua phần Ghép tiếng nhé.</div>';
+    ws.forEach(function (b) {
+      var c = document.createElement("button"); c.className = "btn wordCard";
+      c.innerHTML = '<span class="pic">' + b.e + '</span><span class="w">' + highlight(b.w, L) + "</span>";
+      c.addEventListener("click", function () { speak(b.w); });
+      g.appendChild(c);
+    });
+    show("learn");
+  }
+
+  // ---------- Ghép tiếng ----------
+  function chip(cls, text, sayText) {
+    var b = document.createElement("button"); b.className = "btn " + cls; b.innerHTML = text;
+    b.addEventListener("click", function () { speak(sayText); });
+    return b;
+  }
+  function sayPart(p) {
+    if (!p) return "";
+    if (p.length === 1 && !L.v && p === L.l) return L.say;
+    if (p === "qu") return "quờ";
+    var lo = letterObj(p); if (p.length === 1 && lo.l === p) return lo.say;
+    return p;
+  }
+  function openGhep() {
+    $("ghepTitle").textContent = "Ghép tiếng với chữ " + L.l;
+    var tl = $("toneLegend"); tl.innerHTML = "";
+    TONE_NAMES.forEach(function (n, i) {
+      var ex = addTone(ghepRows(L)[0][2], i);
+      tl.appendChild(chip("toneChip", "<b>" + TONE_SIGNS[i] + "</b>" + n + " · " + ex, n + ". " + ex));
+    });
+    var box = $("ghepRows"); box.innerHTML = "";
+    ghepRows(L).forEach(function (r) {
+      var row = document.createElement("div"); row.className = "ghepRow";
+      var a = r[0], v = r[1], s = r[2];
+      if (a) { row.appendChild(chip("part c", a, sayPart(a))); var p = document.createElement("span"); p.className = "opg"; p.textContent = "+"; row.appendChild(p); }
+      row.appendChild(chip("part v", v, v.length === 1 ? letterObj(v).say : v));
+      if (a) {
+        var eq = document.createElement("span"); eq.className = "opg"; eq.textContent = "→"; row.appendChild(eq);
+        row.appendChild(chip("part s", s, sayPart(a) + ", " + (v.length === 1 ? letterObj(v).say : v) + ", " + s));
+      }
+      var tr = document.createElement("div"); tr.className = "toneRow";
+      for (var t = 0; t < 6; t++) { var x = addTone(s, t); tr.appendChild(chip("syl", x, x)); }
+      row.appendChild(tr);
+      box.appendChild(row);
+    });
+    show("ghep");
+  }
+
+  // ================= TRÒ CHƠI =================
+  var game = null, ROUNDS = 6;
+  function availableGames() {
+    var g = ["turtle", "listen"];
+    var pos = wordsFor(L).length;
+    if (pos >= 1) g.push("pics", "fill");
+    return g;
+  }
+  function startGame() {
+    var av = shuffle(availableGames()), order = [];
+    while (order.length < ROUNDS) order = order.concat(shuffle(av));
+    game = { order: order.slice(0, ROUNDS), idx: 0, stars: 0, mistakes: 0, done: false };
+    token++; $("fx").innerHTML = "";
+    show("game"); nextRound();
+  }
+  $("gameBack").addEventListener("click", function () { stopSpeak(); $("fx").innerHTML = ""; game = null; show("lesson"); });
+  $("gameSpeak").addEventListener("click", function () { if (game && game.say) speak(game.say); });
+  $("againBtn").addEventListener("click", function () { ensureAudio(); startGame(); });
+
+  function setPrompt(html, say) { $("gamePrompt").innerHTML = html; game.say = say; speak(say); }
+  function feedback(t, c) { var f = $("gameFeedback"); f.textContent = t; f.className = "feedback" + (c ? " " + c : ""); }
+  function nextRound() {
+    if (!game) return;
+    if (game.idx >= ROUNDS) return finishGame();
+    game.mistakes = 0; game.locked = false;
+    $("gameProgress").textContent = "Câu " + (game.idx + 1) + "/" + ROUNDS;
+    $("gameStars").textContent = "⭐ " + game.stars;
+    feedback("", "");
+    var kind = game.order[game.idx]; game.kind = kind;
+    ({ pics: roundPics, turtle: roundTurtle, fill: roundFill, listen: roundListen })[kind]();
+  }
+  function roundDone() {
+    if (game.locked) return; game.locked = true;
+    var perfect = game.mistakes === 0;
+    if (perfect) game.stars++;
+    $("gameStars").textContent = "⭐ " + game.stars;
+    var p = pick(PRAISE); feedback(p, "ok"); celebrate(pick(CHEER), p.split("!")[0] + "!"); soundBig();
+    var my = token;
+    setTimeout(function () { speak(p); }, 300);
+    setTimeout(function () { if (my === token && game) { game.idx++; nextRound(); } }, 2600);
+  }
+  function wrong(el) {
+    game.mistakes++; soundWrong();
+    if (el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+  }
+  var sayL = function () { return L.v ? "âm " + L.say : "âm " + L.say; };
+
+  // 1) Chọn hình có âm
+  function roundPics() {
+    var pos = shuffle(wordsFor(L)).slice(0, rnd(2, 3)), neg = [], used = {};
+    pos.forEach(function (p) { used[p.e] = 1; });
+    shuffle(wordsWithout(L)).forEach(function (n) { if (neg.length < 6 - pos.length && !used[n.e]) { neg.push(n); used[n.e] = 1; } });
+    var cards = shuffle(pos.concat(neg)), need = pos.length, found = 0;
+    setPrompt('Chạm vào hình có <span class="big">' + L.l + "</span>", "Con chạm vào các hình có " + sayL());
+    var g = document.createElement("div"); g.className = "picGrid";
+    cards.forEach(function (c) {
+      var b = document.createElement("button"); b.className = "btn picCard";
+      b.innerHTML = '<span class="pic">' + c.e + '</span><span class="w">' + c.w + "</span>";
+      b.addEventListener("click", function () {
+        if (game.locked || b.classList.contains("ok")) return;
+        if (wordHas(c.w, L)) {
+          b.classList.add("ok"); b.querySelector(".w").innerHTML = highlight(c.w, L); found++; soundGood(); speak(c.w);
+          if (found === need) setTimeout(roundDone, 700);
+        } else { b.classList.add("wrongFlash"); setTimeout(function () { b.classList.remove("wrongFlash"); }, 600); wrong(b); speak(c.w); }
+      });
+      g.appendChild(b);
+    });
+    $("gameBody").innerHTML = ""; $("gameBody").appendChild(g);
+  }
+
+  // 2) Tô màu rùa có âm
+  function turtleSVG(text, fill) {
+    return '<svg viewBox="0 0 160 150" aria-hidden="true">' +
+      '<g fill="#fff" stroke="#9aa3b8" stroke-width="3">' +
+      '<ellipse cx="80" cy="20" rx="17" ry="16"/>' +
+      '<ellipse cx="30" cy="45" rx="20" ry="11" transform="rotate(-30 30 45)"/><ellipse cx="130" cy="45" rx="20" ry="11" transform="rotate(30 130 45)"/>' +
+      '<ellipse cx="32" cy="115" rx="20" ry="11" transform="rotate(30 32 115)"/><ellipse cx="128" cy="115" rx="20" ry="11" transform="rotate(-30 128 115)"/>' +
+      '<path d="M80 128 l-7 16 l14 0 z"/></g>' +
+      '<circle cx="74" cy="16" r="2.5" fill="#9aa3b8"/><circle cx="86" cy="16" r="2.5" fill="#9aa3b8"/>' +
+      '<ellipse class="shell" cx="80" cy="80" rx="56" ry="50" fill="' + fill + '" stroke="#9aa3b8" stroke-width="3"/>' +
+      '<rect x="38" y="60" width="84" height="40" rx="10" fill="#fff" stroke="#2c3550" stroke-width="2.5" stroke-dasharray="6 5"/>' +
+      '<text x="80" y="90" text-anchor="middle" font-size="32" fill="#2c3550">' + text + "</text></svg>";
+  }
+  function roundTurtle() {
+    var pos = shuffle(lessonSyllables(L)).slice(0, 4), neg = distractorSyllables(L, 4);
+    var items = shuffle(pos.concat(neg)), found = 0;
+    setPrompt('Tô màu chú rùa có <span class="big">' + L.l + "</span>", "Con tô màu các chú rùa có " + sayL());
+    var g = document.createElement("div"); g.className = "turtleGrid";
+    items.forEach(function (s) {
+      var b = document.createElement("button"); b.className = "btn turtle"; b.innerHTML = turtleSVG(s, "#ffffff");
+      b.addEventListener("click", function () {
+        if (game.locked || b.dataset.done) return;
+        speak(s);
+        if (syllHas(s, L)) {
+          b.dataset.done = "1"; b.querySelector(".shell").setAttribute("fill", pick(COLORS)); found++; soundGood();
+          if (found === pos.length) setTimeout(roundDone, 700);
+        } else { b.querySelector(".shell").setAttribute("fill", "#ffd6d6"); setTimeout(function () { b.querySelector(".shell").setAttribute("fill", "#fff"); }, 600); wrong(b); }
+      });
+      g.appendChild(b);
+    });
+    $("gameBody").innerHTML = ""; $("gameBody").appendChild(g);
+  }
+
+  // 3) Điền âm còn thiếu
+  var CONFUSE = { m:"nb", n:"ml", b:"dđ", d:"bđv", đ:"dt", r:"vd", v:"rb", s:"x", x:"s", l:"n", c:"kt", k:"ch", t:"đc", h:"kg", g:"hk", p:"bq", q:"cg" };
+  function roundFill() {
+    var item = pick(wordsFor(L)), syls = item.w.split(" "), si = 0;
+    for (var i = 0; i < syls.length; i++) if (syllHas(syls[i], L)) { si = i; break; }
+    var s = syls[si], on = onsetOf(s), answer, before, after;
+    if (!L.v) { answer = s.slice(0, on.length); before = ""; after = s.slice(on.length); }
+    else {
+      var rest = s.slice(on.length), ci = 0;
+      for (var j = 0; j < rest.length; j++) if (strip(rest.charAt(j)) === L.l) { ci = j; break; }
+      answer = rest.charAt(ci); before = s.slice(0, on.length) + rest.slice(0, ci); after = rest.slice(ci + 1);
+    }
+    var opts = [answer];
+    if (!L.v) {
+      var pool = (CONFUSE[L.l] || "").split("").concat(shuffle(["b","c","d","đ","h","l","m","n","r","s","t","v","x"]));
+      pool.forEach(function (c) { if (opts.length < 3 && c !== L.l && opts.indexOf(c) < 0) opts.push(c); });
+      if (L.l === "q") opts = ["qu"].concat(opts.slice(1));
+    } else {
+      var tn = toneOf(answer);
+      shuffle(["a","o","ô","ơ","e","ê","u","ư","i"]).forEach(function (v) { var x = withTone(v, tn); if (opts.length < 3 && strip(x) !== L.l && opts.indexOf(x) < 0) opts.push(x); });
+    }
+    opts = shuffle(opts);
+    var html = syls.map(function (x, k) { return k === si ? before + '<span class="blank" id="blank">…</span>' + after : x; }).join(" ");
+    setPrompt("Điền chữ còn thiếu", "Con điền chữ còn thiếu: " + item.w);
+    var body = $("gameBody"); body.innerHTML = "";
+    var card = document.createElement("div"); card.className = "fillCard";
+    card.innerHTML = '<div class="pic">' + item.e + '</div><div class="w">' + html + "</div>";
+    card.addEventListener("click", function () { speak(item.w); });
+    body.appendChild(card);
+    var ch = document.createElement("div"); ch.className = "choices";
+    opts.forEach(function (o) {
+      var b = document.createElement("button"); b.className = "btn choice"; b.textContent = o;
+      b.addEventListener("click", function () {
+        if (game.locked) return;
+        if (o === answer) { b.classList.add("ok"); var bl = $("blank"); bl.textContent = answer; bl.classList.add("ok"); speak(item.w); roundDone(); }
+        else { b.classList.add("bad"); setTimeout(function () { b.classList.remove("bad"); }, 600); wrong(b); }
+      });
+      ch.appendChild(b);
+    });
+    body.appendChild(ch);
+  }
+
+  // 4) Nghe và chọn tiếng (luyện dấu thanh)
+  function roundListen() {
+    var row = pick(ghepRows(L)), base = row[2], target = rnd(0, 5);
+    var tones = [target]; shuffle([0,1,2,3,4,5]).forEach(function (t) { if (tones.length < 4 && tones.indexOf(t) < 0) tones.push(t); });
+    tones = shuffle(tones);
+    var ans = addTone(base, target);
+    setPrompt("Nghe và chọn đúng tiếng 👂", "Con nghe và chọn đúng tiếng: " + ans);
+    var body = $("gameBody"); body.innerHTML = "";
+    var lb = document.createElement("button"); lb.className = "btn listen"; lb.textContent = "🔊";
+    lb.addEventListener("click", function () { speak(ans); }); body.appendChild(lb);
+    var ch = document.createElement("div"); ch.className = "choices";
+    tones.forEach(function (t) {
+      var x = addTone(base, t), b = document.createElement("button"); b.className = "btn choice"; b.textContent = x;
+      b.addEventListener("click", function () {
+        if (game.locked) return;
+        if (t === target) { b.classList.add("ok"); roundDone(); }
+        else { b.classList.add("bad"); speak(x); setTimeout(function () { b.classList.remove("bad"); }, 600); wrong(b); }
+      });
+      ch.appendChild(b);
+    });
+    body.appendChild(ch);
+  }
+
+  function finishGame() {
+    var s = game.stars, ratio = s / ROUNDS, tier = ratio === 1 ? 0 : ratio >= .6 ? 1 : ratio >= .3 ? 2 : 3;
+    $("endTitle").textContent = ["Xuất sắc! 🏆", "Giỏi quá! 🎉", "Cố lên nào! 💪", "Mình luyện thêm nhé! 🌱"][tier];
+    $("endResult").textContent = "Con được " + s + "/" + ROUNDS + " ⭐ với chữ " + L.l;
+    var h = ""; for (var i = 0; i < 3; i++) h += '<span style="animation-delay:' + (.3 + i * .35) + 's">' + (i < 3 - tier ? "⭐" : "☆") + "</span>";
+    $("endStars").innerHTML = h;
+    game = null; show("end");
+    if (tier <= 2) { soundWin(); confetti(80, ["⭐","🎉","🏆","✨","👏"]); }
+    setTimeout(function () { speak(["Xuất sắc! Con giỏi quá!", "Giỏi quá! Con làm tốt lắm!", "Cố lên con nhé!", "Mình luyện thêm nhé, con sẽ giỏi hơn!"][tier]); }, 600);
+  }
+
+  // ================= TẬP VIẾT =================
+  var pad = $("pad"), pctx = pad.getContext("2d"), strokes = [], drawing = null, penSeen = false, writeCase = "lower", slots = [], padW = 0, padH = 0, dpr = 1, glyph = {};
+  function openWrite() {
+    $("writeTitle").textContent = "Tập viết chữ " + (writeCase === "upper" ? L.up : L.l);
+    strokes = []; show("write");
+  }
+  function setCase(c) {
+    writeCase = c; $("caseLower").className = "btn wbtn" + (c === "lower" ? " sel" : ""); $("caseUpper").className = "btn wbtn" + (c === "upper" ? " sel" : "");
+    $("writeTitle").textContent = "Tập viết chữ " + (c === "upper" ? L.up : L.l); strokes = []; setupPad();
+  }
+  $("caseLower").addEventListener("click", function () { setCase("lower"); });
+  $("caseUpper").addEventListener("click", function () { setCase("upper"); });
+  $("writeClear").addEventListener("click", function () { strokes = []; redraw(); $("writeTip").textContent = "Con tô theo nét chữ mờ nhé."; });
+  $("writeSpeak").addEventListener("click", function () { speak(L.say); });
+
+  function setupPad() {
+    if (current !== "write") return;
+    var w = pad.parentNode.clientWidth;
+    var avail = window.innerHeight - pad.getBoundingClientRect().top - 50;
+    var h = Math.max(260, Math.min(avail, w * 0.62));
+    dpr = window.devicePixelRatio || 1; padW = w; padH = h;
+    pad.style.height = h + "px"; pad.width = Math.round(w * dpr); pad.height = Math.round(h * dpr);
+    var ready = document.fonts && document.fonts.load ? document.fonts.load('600 80px "Dancing Script"', L.l + L.up) : Promise.resolve();
+    ready.then(function () { layoutSlots(); redraw(); }, function () { layoutSlots(); redraw(); });
+  }
+  window.addEventListener("resize", function () { if (current === "write") setupPad(); });
+
+  // Bố cục: 2 dòng ô li, mỗi dòng 1 chữ mẫu (đậm) + các chữ mờ để tô
+  function layoutSlots() {
+    var ch = writeCase === "upper" ? L.up : L.l;
+    var sq = Math.max(10, Math.round(padH / 16)); // một ô li
+    glyph = { ch: ch, sq: sq };
+    var m = document.createElement("canvas").getContext("2d");
+    m.font = '600 100px "Dancing Script", cursive';
+    var xm = m.measureText("x"), xh = xm.actualBoundingBoxAscent || 50;
+    // chữ thường: chiều cao chữ x = 2 ô li; chữ hoa: cỡ chữ theo chiều cao chữ hoa = 5 ô li
+    var size;
+    if (writeCase === "upper") { var Hm = m.measureText("H"); size = 100 * (5 * sq) / (Hm.actualBoundingBoxAscent || 70); }
+    else size = 100 * (2 * sq) / xh;
+    glyph.size = size;
+    m.font = '600 ' + size + 'px "Dancing Script", cursive';
+    var gm = m.measureText(ch);
+    var gw = (gm.actualBoundingBoxLeft || 0) + (gm.actualBoundingBoxRight || gm.width);
+    var cell = Math.max(gw + sq * 2, sq * 5);
+    var perRow = Math.max(2, Math.floor((padW - sq * 2) / cell));
+    slots = [];
+    [7, 14].forEach(function (baseRow, r) {
+      for (var i = 0; i < perRow; i++) {
+        var cx = sq + cell * i + cell / 2;
+        slots.push({ x: cx - gw / 2 + (gm.actualBoundingBoxLeft || 0), base: baseRow * sq, cx: cx, w: cell, model: i === 0 && r === 0, left: cx - cell / 2 });
+      }
+    });
+  }
+  function drawGrid(c) {
+    var sq = glyph.sq; c.save();
+    for (var y = 0; y <= padH; y += sq) {
+      var row = Math.round(y / sq), major = row === 7 || row === 14 || row === 5 || row === 12;
+      c.strokeStyle = major ? "#8fbfe3" : "#d8e9f6"; c.lineWidth = major ? 1.6 : 1;
+      c.beginPath(); c.moveTo(0, y); c.lineTo(padW, y); c.stroke();
+    }
+    for (var x = 0; x <= padW; x += sq) {
+      c.strokeStyle = "#e6f0f8"; c.lineWidth = 1; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, padH); c.stroke();
+    }
+    c.restore();
+  }
+  function drawGlyphs(c) {
+    c.save(); c.font = '600 ' + glyph.size + 'px "Dancing Script", cursive'; c.textBaseline = "alphabetic";
+    slots.forEach(function (s) {
+      c.fillStyle = s.model ? "#2c3550" : "rgba(44,53,80,.16)";
+      c.fillText(glyph.ch, s.x, s.base);
+      if (!s.model) { c.setLineDash([3, 4]); c.strokeStyle = "rgba(44,53,80,.45)"; c.lineWidth = 1.2; c.strokeText(glyph.ch, s.x, s.base); c.setLineDash([]); }
+      if (s.mark) { c.font = "700 " + Math.round(glyph.sq * 2.2) + "px sans-serif"; c.fillText(s.mark, s.cx - glyph.sq, s.base - glyph.sq * 5.3); c.font = '600 ' + glyph.size + 'px "Dancing Script", cursive'; }
+    });
+    c.restore();
+  }
+  function penWidth() { return Math.max(6, glyph.sq * 0.75); }
+  function drawStrokes(c, color, width) {
+    c.save(); c.strokeStyle = color; c.lineWidth = width; c.lineCap = "round"; c.lineJoin = "round";
+    strokes.forEach(function (st) {
+      c.beginPath(); st.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); });
+      if (st.length === 1) c.lineTo(st[0][0] + .1, st[0][1]);
+      c.stroke();
+    });
+    c.restore();
+  }
+  function redraw() {
+    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pctx.fillStyle = "#fff"; pctx.fillRect(0, 0, padW, padH);
+    drawGrid(pctx); drawGlyphs(pctx); drawStrokes(pctx, "#1f6feb", penWidth());
+  }
+  function pt(e) { var r = pad.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  pad.addEventListener("pointerdown", function (e) {
+    if (e.pointerType === "pen") penSeen = true;
+    if (penSeen && e.pointerType === "touch") return; // bỏ qua lòng bàn tay khi đang dùng bút
+    e.preventDefault(); try { pad.setPointerCapture(e.pointerId); } catch (x) {}
+    drawing = { id: e.pointerId, st: [pt(e)] }; strokes.push(drawing.st); redraw();
+  });
+  pad.addEventListener("pointermove", function (e) {
+    if (!drawing || e.pointerId !== drawing.id) return; e.preventDefault();
+    var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    (evs.length ? evs : [e]).forEach(function (ev) { drawing.st.push(pt(ev)); });
+    redraw();
+  });
+  function endStroke(e) { if (drawing && e.pointerId === drawing.id) drawing = null; }
+  pad.addEventListener("pointerup", endStroke); pad.addEventListener("pointercancel", endStroke);
+  pad.addEventListener("touchstart", function (e) { e.preventDefault(); }, { passive: false });
+
+  // Chấm điểm: phần nét chữ được tô phủ, và phần nét vẽ lệch ra ngoài
+  function score() {
+    var s = 0.5, W = Math.round(padW * s), H = Math.round(padH * s);
+    function layer() { var cv = document.createElement("canvas"); cv.width = W; cv.height = H; var c = cv.getContext("2d"); c.scale(s, s); return c; }
+    var core = layer(), tol = layer(), kid = layer();
+    [core, tol].forEach(function (c, i) {
+      c.font = '600 ' + glyph.size + 'px "Dancing Script", cursive'; c.fillStyle = "#000";
+      slots.forEach(function (sl) { if (!sl.model) { c.fillText(glyph.ch, sl.x, sl.base); if (i === 1) { c.lineWidth = glyph.sq * 1.6; c.lineJoin = "round"; c.strokeStyle = "#000"; c.strokeText(glyph.ch, sl.x, sl.base); } } });
+    });
+    drawStrokes(kid, "#000", penWidth() * 1.3);
+    var cd = core.getImageData(0, 0, W, H).data, td = tol.getImageData(0, 0, W, H).data, kd = kid.getImageData(0, 0, W, H).data;
+    return slots.map(function (sl) {
+      if (sl.model) return null;
+      var x0 = Math.max(0, Math.floor(sl.left * s)), x1 = Math.min(W, Math.ceil((sl.left + sl.w) * s));
+      var y0 = Math.max(0, Math.floor((sl.base - glyph.sq * 6) * s)), y1 = Math.min(H, Math.ceil((sl.base + glyph.sq * 3) * s));
+      var cn = 0, cov = 0, kn = 0, out = 0;
+      for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) {
+        var i = (y * W + x) * 4 + 3;
+        if (cd[i] > 100) { cn++; if (kd[i] > 60) cov++; }
+        if (kd[i] > 60) { kn++; if (td[i] < 30) out++; }
+      }
+      return { cover: cn ? cov / cn : 0, out: kn ? out / kn : 0, ink: kn };
+    });
+  }
+  $("writeCheck").addEventListener("click", function () {
+    ensureAudio();
+    var res = score(), good = 0, tried = 0, total = 0;
+    res.forEach(function (r, i) {
+      if (!r) return; total++;
+      var sl = slots[i];
+      if (r.ink < 20) { sl.mark = ""; return; }
+      tried++;
+      if (r.cover >= 0.55 && r.out <= 0.4) { sl.mark = "⭐"; good++; } else sl.mark = "↺";
+    });
+    redraw();
+    window.__lastScore = res;
+    if (!tried) { $("writeTip").textContent = "Con hãy tô theo các chữ mờ trước nhé ✏️"; speak("Con hãy tô theo các chữ mờ nhé"); return; }
+    if (good === tried && tried >= Math.min(3, total)) {
+      $("writeTip").textContent = "Con viết đẹp quá! Được " + good + " ⭐"; celebrate("✍️", "Viết đẹp quá!"); soundBig(); speak("Con viết đẹp quá!");
+    } else if (good > 0) {
+      $("writeTip").textContent = "Được " + good + " ⭐. Chữ có dấu ↺ con tô lại cho khớp nét mờ nhé."; soundGood(); speak("Giỏi lắm! Con tô lại chữ có dấu vòng tròn nhé");
+    } else {
+      $("writeTip").textContent = "Con tô sát theo nét chữ mờ hơn nhé ✏️"; soundWrong(); speak("Con tô sát theo nét chữ mờ hơn nhé");
+    }
+  });
+
+  // ================= KHỞI ĐỘNG =================
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && current !== "home") show("home"); });
+  window.__bhc = { LETTERS: LETTERS, wordsFor: wordsFor, ghepRows: ghepRows, lessonSyllables: lessonSyllables, syllHas: syllHas, addTone: addTone, openLesson: openLesson, startGame: startGame, game: function () { return game; }, slots: function () { return slots; }, glyph: function () { return glyph; } };
+  buildHome();
+  show("home");
+})();
+</script>
+<script>
+  if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }
+</script>
+</body>
+</html>
