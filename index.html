@@ -167,7 +167,7 @@ h1 { font-size: clamp(44px, 8vw, 78px); line-height: 1; margin: 6px 0 4px; color
 <div class="panel">
 <h3>⚙ Cài đặt cho bố mẹ</h3>
 <div class="row"><label for="optSound">Tiếng vỗ tay khi hoàn thành</label><input type="checkbox" id="optSound"></div>
-<div class="row"><label for="optSpell">Đánh vần trước khi đọc tiếng (nờ – i – ni)</label><input type="checkbox" id="optSpell"></div>
+<div class="row"><label for="optSpell">Đọc mẫu có đánh vần (nì: nờ – i – ni – huyền – nì)</label><input type="checkbox" id="optSpell"></div>
 <div class="row"><span class="vs" id="voiceStatus">Bấm Nghe thử để kiểm tra giọng đọc.</span><button class="btn small" id="testVoice">🔊 Nghe thử</button></div>
 <p class="tip">Chạm vào bất kỳ chữ nào trên tờ bài để nghe đọc mẫu. Bố mẹ bật <b>⭐ Chấm sao</b> rồi chạm vào chữ bé đã đọc đúng để dán sao, giống phiếu học ở lớp. Trên iPad/iPhone: tắt chế độ Im lặng để nghe được tiếng.</p>
 </div>
@@ -250,7 +250,7 @@ var VOWEL_SAY = { a: "a", "ă": "á", "â": "ớ", e: "e", "ê": "ê", i: "i", o
 
 // ================= LƯU TRỮ =================
 var KEY = "be-hoc-chu-v2";
-var S = { sound: true, spell: false, custom: [], stars: {} };
+var S = { sound: true, spell2: true, custom: [], stars: {} };
 try { var sv = JSON.parse(localStorage.getItem(KEY) || "null"); if (sv) for (var k in sv) if (Object.prototype.hasOwnProperty.call(sv, k)) S[k] = sv[k]; } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function allLessons() {
@@ -309,6 +309,7 @@ function pickVoice() {
   if (viVoice) setVS("✔ Đang dùng giọng: " + viVoice.name, "ok");
   else if (vs.length) setVS("Chưa có giọng tiếng Việt. iPad: Cài đặt → Trợ năng → Nội dung được đọc → Giọng nói → Tiếng Việt.", "warn");
 }
+window.__spell = { spellSyl: spellSyl, spellPhrase: spellPhrase };
 if (synth) { try { synth.onvoiceschanged = pickVoice; } catch (e) {} setTimeout(pickVoice, 800); setTimeout(pickVoice, 2500); }
 function speak(text, done) {
   var fin = false; function f() { if (!fin) { fin = true; if (done) done(); } }
@@ -372,10 +373,10 @@ function buildHome() {
   var add = document.createElement("button"); add.className = "btn lessonCard addCard"; add.textContent = "➕ Thêm bài (bố mẹ)";
   add.addEventListener("click", function () { openEditor(null); }); g.appendChild(add);
 }
-$("optSound").checked = !!S.sound; $("optSpell").checked = !!S.spell;
+$("optSound").checked = !!S.sound; $("optSpell").checked = !!S.spell2;
 $("optSound").addEventListener("change", function () { S.sound = this.checked; save(); });
-$("optSpell").addEventListener("change", function () { S.spell = this.checked; save(); });
-$("testVoice").addEventListener("click", function () { ensureAudio(); pickVoice(); speak("nờ, i, ni. ni, nì, ní, nỉ, nĩ, nị."); });
+$("optSpell").addEventListener("change", function () { S.spell2 = this.checked; save(); if (LS && current === "lesson") openLesson(LS); });
+$("testVoice").addEventListener("click", function () { ensureAudio(); pickVoice(); speak(spellSyl("ni") + " " + spellSyl("nì")); });
 
 // ---------- Tờ bài học ----------
 var starMode = false;
@@ -395,7 +396,32 @@ function mkBtn(cls, text, sayText, key) {
   });
   return b;
 }
-function spellOf(syl, cons, vowel) { return S.spell ? LS.say + ", " + (VOWEL_SAY[vowel] || vowel) + ", " + syl : syl; }
+// Đánh vần theo cách cô dạy: "nì" → "nì. nờ, i, ni, huyền, nì. nì."
+var ONSETS = ["ngh","ng","nh","ch","gh","gi","kh","ph","qu","th","tr","b","c","d","đ","g","h","k","l","m","n","p","r","s","t","v","x"];
+var ONSET_SAY = { b:"bờ", c:"cờ", ch:"chờ", d:"dờ", "đ":"đờ", g:"gờ", gh:"gờ", gi:"di", h:"hờ", k:"ca", kh:"khờ", l:"lờ", m:"mờ", n:"nờ", ng:"ngờ", ngh:"ngờ", nh:"nhờ", p:"pờ", ph:"phờ", qu:"quờ", r:"rờ", s:"sờ", t:"tờ", th:"thờ", tr:"trờ", v:"vờ", x:"xờ" };
+var TONE_NAME = ["", "huyền", "sắc", "hỏi", "ngã", "nặng"];
+function partsOf(syl) {
+  var low = syl.toLowerCase().replace(/[^a-zà-ỹđ̀-̣]/g, ""), base = strip(low), on = "";
+  for (var i = 0; i < ONSETS.length; i++) { var o = ONSETS[i]; if (base.indexOf(o) === 0 && base.length > o.length) { if (o === "gi" && VOWELS.indexOf(base.charAt(2)) < 0) continue; on = o; break; } }
+  var tone = 0, m = low.normalize("NFD").match(TONE_RE); if (m) tone = TONES.indexOf(m[0]);
+  return { word: low, on: on, rime: base.slice(on.length), base: base, tone: tone };
+}
+function rimeSay(r) { return r.length === 1 ? (VOWEL_SAY[r] || r) : r; }
+// phần đánh vần của một tiếng: "nờ, i, ni, huyền, nì"
+function spellCore(syl) {
+  var p = partsOf(syl); if (!p.base) return syl;
+  var out = [];
+  if (p.on) out.push(ONSET_SAY[p.on] || p.on, rimeSay(p.rime), p.base); else out.push(rimeSay(p.rime));
+  if (p.tone) out.push(TONE_NAME[p.tone], p.word);
+  return out.join(", ");
+}
+// một tiếng trên hàng ghép vần: đọc – đánh vần – đọc lại
+function spellSyl(syl) { return S.spell2 ? syl + ". " + spellCore(syl) + ". " + syl + "." : syl; }
+// từ và câu: đánh vần từng tiếng rồi đọc trơn
+function spellPhrase(t) {
+  if (!S.spell2) return t;
+  return t.split(/\s+/).filter(function (x) { return x.replace(/[^a-zà-ỹđA-ZÀ-ỸĐ]/g, ""); }).map(spellCore).join(". ") + ". " + t;
+}
 function section(badgeCls, badgeText, inner) {
   var sec = document.createElement("div"); sec.className = "sec";
   var bd = document.createElement("div"); bd.className = "badge " + badgeCls; bd.textContent = badgeText;
@@ -438,11 +464,11 @@ function openLesson(l) {
     var vb = mkBtn("syl v", v, VOWEL_SAY[v] || v); row.appendChild(vb);
     var base = l.letter + v, seq = [{ el: vb, text: VOWEL_SAY[v] || v }];
     for (var t = 0; t < 6; t++) {
-      var s = addTone(base, t), b = mkBtn("syl", s, spellOf(s, l.letter, v), "s:" + s);
+      var s = addTone(base, t), b = mkBtn("syl", s, spellSyl(s), "s:" + s);
       row.appendChild(b); seq.push({ el: b, text: s });
     }
     var rp = document.createElement("button"); rp.className = "btn rowPlay"; rp.textContent = "🔊"; rp.setAttribute("aria-label", "Đọc cả hàng");
-    rp.addEventListener("click", function () { ensureAudio(); stopSeq(); speakSeq([{ el: null, text: l.say + ", " + (VOWEL_SAY[v] || v) + ", " + base }].concat(seq.slice(1))); });
+    rp.addEventListener("click", function () { ensureAudio(); stopSeq(); speakSeq(seq.slice(1).map(function (x) { return { el: x.el, text: x.el.dataset.say, pause: 500 }; })); });
     row.appendChild(rp);
     tree.appendChild(row);
   });
@@ -451,14 +477,14 @@ function openLesson(l) {
   // 2. Từ
   if (l.words && l.words.length) {
     var wb = document.createElement("div"); wb.className = "box words";
-    l.words.forEach(function (w) { wb.appendChild(mkBtn("syl", w, w, "w:" + w)); });
+    l.words.forEach(function (w) { wb.appendChild(mkBtn("syl", w, spellPhrase(w), "w:" + w)); });
     sh.appendChild(section("b2", "2", wb));
   }
   // 3. Câu
   if (l.sents && l.sents.length) {
     var sw = document.createElement("div"); sw.className = "box sentWrap";
     var col = document.createElement("div"); col.className = "sents";
-    l.sents.forEach(function (s) { col.appendChild(mkBtn("syl", s, s, "c:" + s)); });
+    l.sents.forEach(function (s) { col.appendChild(mkBtn("syl", s, spellPhrase(s), "c:" + s)); });
     sw.appendChild(col);
     if (l.sentPic) { var sp = document.createElement("div"); sp.className = "sentPic"; sp.textContent = l.sentPic; sw.appendChild(sp); }
     sh.appendChild(section("b3", "3", sw));
@@ -482,13 +508,12 @@ $("playAll").addEventListener("click", function () {
   var hp = sh.querySelector(".headPic"); if (hp) items.push({ el: hp, text: LS.pic.w, pause: 600 });
   sh.querySelectorAll(".vrow").forEach(function (row) {
     var btns = row.querySelectorAll(".syl");
-    btns.forEach(function (b, i) { items.push({ el: b, text: i === 1 ? spellOfRow(b.textContent, btns[0].textContent) : b.dataset.say.split(", ").pop(), pause: i === 0 ? 450 : 300 }); });
+    btns.forEach(function (b, i) { items.push({ el: b, text: b.dataset.say, pause: i === 0 ? 450 : 500 }); });
   });
-  sh.querySelectorAll(".words .syl, .sents .syl").forEach(function (b) { items.push({ el: b, text: b.textContent, pause: 600 }); });
+  sh.querySelectorAll(".words .syl, .sents .syl").forEach(function (b) { items.push({ el: b, text: b.dataset.say, pause: 700 }); });
   setPlayBtn(true);
   speakSeq(items, function () { setPlayBtn(false); celebrate("👏", "Con giỏi lắm!"); soundBig(); setTimeout(function () { speak("Con giỏi lắm!"); }, 300); });
 });
-function spellOfRow(syl, vowel) { return LS.say + ", " + (VOWEL_SAY[vowel] || vowel) + ", " + syl; }
 
 // Chấm sao
 function updateStarMode() {
